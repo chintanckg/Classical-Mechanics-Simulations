@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Pendulum Physics Simulator</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                overflow: hidden;
+                color: #e2e8f0;
+            }
+
+            #canvas {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            .control-panel {
+                position: fixed;
+                top: 20px;
+                background: rgba(15, 23, 42, 0.85);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(148, 163, 184, 0.1);
+                border-radius: 12px;
+                padding: 20px;
+                z-index: 1000;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            }
+
+            .left-panel {
+                left: 20px;
+                width: 280px;
+            }
+
+            .right-panel {
+                right: 20px;
+                width: 280px;
+            }
+
+            .panel-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 20px;
+                padding-bottom: 15px;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            }
+
+            .panel-title {
+                font-size: 16px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .pendulum-indicator {
+                width: 12px;
+                height: 12px;
+                border-radius: 50%;
+            }
+
+            .pendulum-1 {
+                background: #60a5fa;
+            }
+            .pendulum-2 {
+                background: #34d399;
+            }
+
+            .control-group {
+                margin-bottom: 18px;
+            }
+
+            .control-label {
+                display: flex;
+                justify-content: space-between;
+                font-size: 13px;
+                color: #94a3b8;
+                margin-bottom: 8px;
+            }
+
+            .control-value {
+                color: #f1f5f9;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .slider {
+                width: 100%;
+                height: 4px;
+                -webkit-appearance: none;
+                appearance: none;
+                background: rgba(148, 163, 184, 0.2);
+                border-radius: 2px;
+                outline: none;
+                transition: background 0.3s;
+            }
+
+            .slider:hover {
+                background: rgba(148, 163, 184, 0.3);
+            }
+
+            .slider::-webkit-slider-thumb {
+                -webkit-appearance: none;
+                width: 14px;
+                height: 14px;
+                border-radius: 50%;
+                cursor: pointer;
+                transition: transform 0.2s;
+            }
+
+            .slider::-webkit-slider-thumb:hover {
+                transform: scale(1.2);
+            }
+
+            .slider-1::-webkit-slider-thumb {
+                background: #60a5fa;
+            }
+            .slider-2::-webkit-slider-thumb {
+                background: #34d399;
+            }
+
+            .stats-grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 1px solid rgba(148, 163, 184, 0.1);
+            }
+
+            .stat-item {
+                background: rgba(30, 41, 59, 0.5);
+                padding: 10px;
+                border-radius: 8px;
+            }
+
+            .stat-label {
+                font-size: 11px;
+                color: #64748b;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .stat-value {
+                font-size: 16px;
+                font-weight: 600;
+                color: #f1f5f9;
+                margin-top: 4px;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .button-group {
+                display: flex;
+                gap: 10px;
+                margin-top: 20px;
+            }
+
+            .btn {
+                flex: 1;
+                padding: 10px;
+                background: rgba(59, 130, 246, 0.2);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                border-radius: 8px;
+                color: #60a5fa;
+                font-size: 13px;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s;
+            }
+
+            .btn:hover {
+                background: rgba(59, 130, 246, 0.3);
+                transform: translateY(-1px);
+            }
+
+            .btn-danger {
+                background: rgba(239, 68, 68, 0.2);
+                border-color: rgba(239, 68, 68, 0.3);
+                color: #f87171;
+            }
+
+            .btn-danger:hover {
+                background: rgba(239, 68, 68, 0.3);
+            }
+
+            .btn-success {
+                background: rgba(34, 197, 94, 0.2);
+                border-color: rgba(34, 197, 94, 0.3);
+                color: #4ade80;
+            }
+
+            .btn-success:hover {
+                background: rgba(34, 197, 94, 0.3);
+            }
+
+            .comparison-panel {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(15, 23, 42, 0.85);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(148, 163, 184, 0.1);
+                border-radius: 12px;
+                padding: 15px 25px;
+                display: flex;
+                gap: 30px;
+                align-items: center;
+                z-index: 1000;
+            }
+
+            .comparison-item {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .comparison-label {
+                font-size: 12px;
+                color: #94a3b8;
+            }
+
+            .comparison-value {
+                font-size: 18px;
+                font-weight: 600;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .period-1 {
+                color: #60a5fa;
+            }
+            .period-2 {
+                color: #34d399;
+            }
+            .period-diff {
+                color: #fbbf24;
+            }
+
+            .graph-container {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(15, 23, 42, 0.85);
+                backdrop-filter: blur(12px);
+                border: 1px solid rgba(148, 163, 184, 0.1);
+                border-radius: 12px;
+                padding: 15px;
+                z-index: 999;
+            }
+
+            #angleGraph {
+                border-radius: 8px;
+            }
+
+            .controls-container {
+                position: fixed;
+                bottom: 100px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 10px;
+                z-index: 1000;
+            }
+        </style>
+    </head>
+    <body>
+        <canvas id="canvas"></canvas>
+
+        <div class="control-panel left-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="pendulum-indicator pendulum-1"></div>
+                    Pendulum 1
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Length
+                    <span class="control-value" id="length1Val">1.00 m</span>
+                </label>
+                <input
+                    type="range"
+                    id="length1"
+                    class="slider slider-1"
+                    min="0.5"
+                    max="2"
+                    step="0.01"
+                    value="1"
+                />
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Mass
+                    <span class="control-value" id="mass1Val">2.00 kg</span>
+                </label>
+                <input
+                    type="range"
+                    id="mass1"
+                    class="slider slider-1"
+                    min="0.5"
+                    max="5"
+                    step="0.1"
+                    value="2"
+                />
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Initial Angle
+                    <span class="control-value" id="angle1Val">30°</span>
+                </label>
+                <input
+                    type="range"
+                    id="angle1"
+                    class="slider slider-1"
+                    min="-90"
+                    max="90"
+                    step="1"
+                    value="30"
+                />
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Damping
+                    <span class="control-value" id="damping1Val">0.000</span>
+                </label>
+                <input
+                    type="range"
+                    id="damping1"
+                    class="slider slider-1"
+                    min="0"
+                    max="0.1"
+                    step="0.001"
+                    value="0"
+                />
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Velocity</div>
+                    <div class="stat-value" id="vel1">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Energy</div>
+                    <div class="stat-value" id="energy1">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel right-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="pendulum-indicator pendulum-2"></div>
+                    Pendulum 2
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Length
+                    <span class="control-value" id="length2Val">1.50 m</span>
+                </label>
+                <input
+                    type="range"
+                    id="length2"
+                    class="slider slider-2"
+                    min="0.5"
+                    max="2"
+                    step="0.01"
+                    value="1.5"
+                />
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Mass
+                    <span class="control-value" id="mass2Val">2.00 kg</span>
+                </label>
+                <input
+                    type="range"
+                    id="mass2"
+                    class="slider slider-2"
+                    min="0.5"
+                    max="5"
+                    step="0.1"
+                    value="2"
+                />
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Initial Angle
+                    <span class="control-value" id="angle2Val">30°</span>
+                </label>
+                <input
+                    type="range"
+                    id="angle2"
+                    class="slider slider-2"
+                    min="-90"
+                    max="90"
+                    step="1"
+                    value="30"
+                />
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">
+                    Damping
+                    <span class="control-value" id="damping2Val">0.000</span>
+                </label>
+                <input
+                    type="range"
+                    id="damping2"
+                    class="slider slider-2"
+                    min="0"
+                    max="0.1"
+                    step="0.001"
+                    value="0"
+                />
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Velocity</div>
+                    <div class="stat-value" id="vel2">0.00</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Energy</div>
+                    <div class="stat-value" id="energy2">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="graph-container">
+            <canvas id="angleGraph" width="300" height="150"></canvas>
+        </div>
+
+        <div class="comparison-panel">
+            <div class="comparison-item">
+                <span class="comparison-label">Period 1:</span>
+                <span class="comparison-value period-1" id="period1">-</span>
+            </div>
+            <div class="comparison-item">
+                <span class="comparison-label">Period 2:</span>
+                <span class="comparison-value period-2" id="period2">-</span>
+            </div>
+            <div class="comparison-item">
+                <span class="comparison-label">Difference:</span>
+                <span class="comparison-value period-diff" id="periodDiff"
+                    >-</span
+                >
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <button class="btn btn-success" onclick="startBothPendulums()">
+                Start Both
+            </button>
+            <button class="btn btn-danger" onclick="stopBothPendulums()">
+                Stop Both
+            </button>
+            <button class="btn" onclick="resetBothPendulums()">Reset</button>
+        </div>
+
+        <script>
+            const canvas = document.getElementById("canvas");
+            const ctx = canvas.getContext("2d");
+            const graphCanvas = document.getElementById("angleGraph");
+            const graphCtx = graphCanvas.getContext("2d");
+
+            let width, height, centerX, centerY;
+            const g = 9.81;
+            const dt = 0.016;
+            const scale = 150;
+            let time = 0;
+
+            const pendulums = [
+                {
+                    length: 1,
+                    mass: 2,
+                    angle: Math.PI / 6,
+                    angleVel: 0,
+                    damping: 0,
+                    color: "#60a5fa",
+                    isRunning: false,
+                    crossingTimes: [],
+                    currentPeriod: 0,
+                    angleHistory: [],
+                },
+                {
+                    length: 1.5,
+                    mass: 2,
+                    angle: Math.PI / 6,
+                    angleVel: 0,
+                    damping: 0,
+                    color: "#34d399",
+                    isRunning: false,
+                    crossingTimes: [],
+                    currentPeriod: 0,
+                    angleHistory: [],
+                },
+            ];
+
+            function resize() {
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                centerX = width / 2;
+                centerY = height / 3;
+            }
+
+            function updatePendulum(p) {
+                if (!p.isRunning) return;
+
+                // Calculate angular acceleration using proper pendulum equation
+                const angleAccel =
+                    -(g / p.length) * Math.sin(p.angle) -
+                    p.damping * p.angleVel;
+
+                // Update velocity and position
+                p.angleVel += angleAccel * dt;
+                const prevAngle = p.angle;
+                p.angle += p.angleVel * dt;
+
+                // Only track period if pendulum is actually moving
+                const minAngle = 0.01; // About 0.5 degrees
+                const minVelocity = 0.01; // Threshold for "stopped"
+
+                if (
+                    Math.abs(p.angle) < minAngle &&
+                    Math.abs(p.angleVel) < minVelocity
+                ) {
+                    // Pendulum has effectively stopped
+                    p.currentPeriod = 0; // This will show as "-" in display
+                    p.crossingTimes = []; // Clear crossing history
+                } else if (prevAngle * p.angle < 0) {
+                    // Zero crossing detected while pendulum is still moving
+                    const currentTime = performance.now() / 1000;
+
+                    // Add this crossing time
+                    p.crossingTimes.push(currentTime);
+
+                    // Keep only recent crossings (last 10)
+                    if (p.crossingTimes.length > 10) {
+                        p.crossingTimes.shift();
+                    }
+
+                    // Calculate period from alternating crossings
+                    // Every 2 crossings = 1 full period
+                    if (p.crossingTimes.length >= 3) {
+                        const periods = [];
+                        // Compare crossings that are 2 apart (full oscillation)
+                        for (let i = 2; i < p.crossingTimes.length; i++) {
+                            const period =
+                                p.crossingTimes[i] - p.crossingTimes[i - 2];
+                            periods.push(period);
+                        }
+
+                        // Average the periods
+                        if (periods.length > 0) {
+                            const avgPeriod =
+                                periods.reduce((a, b) => a + b) /
+                                periods.length;
+                            p.currentPeriod = avgPeriod;
+                        }
+                    }
+                }
+
+                // Store angle history for graph
+                p.angleHistory.push(p.angle);
+                if (p.angleHistory.length > 300) p.angleHistory.shift();
+            }
+
+            function drawPendulum(p, offsetX) {
+                const x = centerX + offsetX;
+                const y = centerY;
+
+                const bobX = x + Math.sin(p.angle) * p.length * scale;
+                const bobY = y + Math.cos(p.angle) * p.length * scale;
+
+                // Draw support
+                ctx.fillStyle = "#475569";
+                ctx.fillRect(x - 40, y - 10, 80, 10);
+
+                // Draw string
+                ctx.strokeStyle = "#64748b";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(bobX, bobY);
+                ctx.stroke();
+
+                // Draw bob with mass-dependent size
+                const bobRadius = 10 + p.mass * 3;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(bobX, bobY, bobRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw bob highlight
+                ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+                ctx.beginPath();
+                ctx.arc(
+                    bobX - bobRadius / 3,
+                    bobY - bobRadius / 3,
+                    bobRadius / 3,
+                    0,
+                    Math.PI * 2,
+                );
+                ctx.fill();
+
+                // Draw angle arc
+                if (Math.abs(p.angle) > 0.01) {
+                    ctx.strokeStyle = p.color + "40";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(
+                        x,
+                        y,
+                        40,
+                        Math.PI / 2,
+                        Math.PI / 2 + p.angle,
+                        p.angle < 0,
+                    );
+                    ctx.stroke();
+                }
+            }
+
+            function drawGraph() {
+                graphCtx.fillStyle = "rgba(15, 23, 42, 0.9)";
+                graphCtx.fillRect(0, 0, 300, 150);
+
+                // Draw grid
+                graphCtx.strokeStyle = "rgba(148, 163, 184, 0.1)";
+                graphCtx.lineWidth = 1;
+                for (let i = 0; i <= 5; i++) {
+                    const y = i * 30;
+                    graphCtx.beginPath();
+                    graphCtx.moveTo(0, y);
+                    graphCtx.lineTo(300, y);
+                    graphCtx.stroke();
+                }
+
+                // Draw angle histories (draw pendulum 1 last so it's on top)
+                [1, 0].forEach((idx) => {
+                    const p = pendulums[idx];
+                    if (p.angleHistory.length < 2) return;
+
+                    graphCtx.strokeStyle = p.color;
+                    graphCtx.lineWidth = 2.5;
+                    graphCtx.globalAlpha = 0.9;
+                    graphCtx.beginPath();
+
+                    p.angleHistory.forEach((angle, i) => {
+                        const x = i;
+                        const y = 75 - angle * 30;
+                        if (i === 0) graphCtx.moveTo(x, y);
+                        else graphCtx.lineTo(x, y);
+                    });
+                    graphCtx.stroke();
+                });
+                graphCtx.globalAlpha = 1.0;
+
+                // Labels
+                graphCtx.fillStyle = "#64748b";
+                graphCtx.font = "10px monospace";
+                graphCtx.fillText("Angle vs Time", 10, 140);
+            }
+
+            function animate() {
+                // Clear canvas
+                ctx.fillStyle = "#0f172a";
+                ctx.fillRect(0, 0, width, height);
+
+                // Draw grid
+                ctx.strokeStyle = "rgba(148, 163, 184, 0.05)";
+                ctx.lineWidth = 1;
+                for (let i = 0; i < width; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, height);
+                    ctx.stroke();
+                }
+                for (let i = 0; i < height; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(width, i);
+                    ctx.stroke();
+                }
+
+                // Update and draw pendulums
+                updatePendulum(pendulums[0]);
+                updatePendulum(pendulums[1]);
+
+                drawPendulum(pendulums[0], -150);
+                drawPendulum(pendulums[1], 150);
+
+                // Update stats
+                updateStats();
+
+                // Draw graph
+                if (time % 3 === 0) drawGraph();
+
+                time++;
+                requestAnimationFrame(animate);
+            }
+
+            function updateStats() {
+                // Update displayed values for each pendulum
+                pendulums.forEach((p, idx) => {
+                    const num = idx + 1;
+                    const vel = Math.abs(p.angleVel).toFixed(2);
+                    const energy = (
+                        0.5 * p.mass * Math.pow(p.length * p.angleVel, 2) +
+                        p.mass * g * p.length * (1 - Math.cos(p.angle))
+                    ).toFixed(2);
+
+                    document.getElementById(`vel${num}`).textContent = vel;
+                    document.getElementById(`energy${num}`).textContent =
+                        energy;
+
+                    // Display the current period
+                    if (p.currentPeriod > 0) {
+                        document.getElementById(`period${num}`).textContent =
+                            p.currentPeriod.toFixed(3) + "s";
+                    } else {
+                        document.getElementById(`period${num}`).textContent =
+                            "-";
+                    }
+                });
+
+                // Calculate period difference
+                if (
+                    pendulums[0].currentPeriod > 0 &&
+                    pendulums[1].currentPeriod > 0
+                ) {
+                    const p1 = pendulums[0].currentPeriod;
+                    const p2 = pendulums[1].currentPeriod;
+                    const diff = Math.abs(((p1 - p2) / p1) * 100);
+                    document.getElementById("periodDiff").textContent =
+                        diff.toFixed(2) + "%";
+                }
+            }
+
+            // Unified control functions
+            function startBothPendulums() {
+                pendulums.forEach((p) => {
+                    p.isRunning = true;
+                    p.angleVel = 0;
+                    p.crossingTimes = [];
+                    p.currentPeriod = 0;
+                    p.angleHistory = [];
+                });
+            }
+
+            function stopBothPendulums() {
+                pendulums.forEach((p) => {
+                    p.isRunning = false;
+                });
+            }
+
+            function resetBothPendulums() {
+                pendulums.forEach((p, idx) => {
+                    p.isRunning = false;
+                    p.angleVel = 0;
+                    p.crossingTimes = [];
+                    p.currentPeriod = 0;
+                    p.angleHistory = [];
+
+                    // Reset to initial angles from sliders
+                    const angleInput = document.getElementById(
+                        `angle${idx + 1}`,
+                    );
+                    p.angle = (parseFloat(angleInput.value) * Math.PI) / 180;
+
+                    // Reset period display
+                    document.getElementById(`period${idx + 1}`).textContent =
+                        "-";
+                });
+
+                // Reset period difference display
+                document.getElementById("periodDiff").textContent = "-";
+            }
+
+            // Input handlers
+            ["length", "mass", "angle", "damping"].forEach((param) => {
+                [1, 2].forEach((num) => {
+                    const input = document.getElementById(`${param}${num}`);
+                    const display = document.getElementById(
+                        `${param}${num}Val`,
+                    );
+
+                    input.addEventListener("input", () => {
+                        const value = parseFloat(input.value);
+                        const p = pendulums[num - 1];
+
+                        switch (param) {
+                            case "length":
+                                p.length = value;
+                                display.textContent = value.toFixed(2) + " m";
+                                break;
+                            case "mass":
+                                p.mass = value;
+                                display.textContent = value.toFixed(2) + " kg";
+                                break;
+                            case "angle":
+                                if (!p.isRunning) {
+                                    p.angle = (value * Math.PI) / 180;
+                                }
+                                display.textContent = value + "°";
+                                break;
+                            case "damping":
+                                p.damping = value;
+                                display.textContent = value.toFixed(3);
+                                break;
+                        }
+                    });
+                });
+            });
+
+            // Initialize
+            window.addEventListener("resize", resize);
+            resize();
+            animate();
+        </script>
+    </body>
+</html>
